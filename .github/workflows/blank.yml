@@ -1,0 +1,38 @@
+name: CI
+on:
+  pull_request_target:
+    types:
+      - labeled
+      - opened
+      - synchronize
+      - reopened
+    branches:
+      - main
+
+jobs:
+  authorize:
+    runs-on: ubuntu-latest
+    environment: internal  # Default value (overridden in steps)
+    steps:
+      - name: Set environment dynamically
+        run: |
+          if [[ "${{ github.event_name }}" == "pull_request_target" && \
+                "${{ github.event.pull_request.head.repo.full_name }}" != "${{ github.repository }}" ]]; then
+            echo "Using external environment"
+            echo "ENVIRONMENT=external" >> $GITHUB_ENV
+          else
+            echo "Using internal environment"
+            echo "ENVIRONMENT=internal" >> $GITHUB_ENV
+          fi
+
+      - name: Run with selected environment
+        env:
+          ENVIRONMENT: ${{ env.ENVIRONMENT }}
+        run: echo "Environment is $ENVIRONMENT"
+  external_job:
+    needs: authorize  # Ensures it runs after authorize
+    if: needs.authorize.outputs.environment == 'external'  # Run only if ENVIRONMENT is 'external'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Execute external job
+        run: echo "Running external job because ENVIRONMENT is external!"
