@@ -17,7 +17,10 @@ jobs:
       'external' || 'internal' }}
     runs-on: ubuntu-latest
     steps:
-      - run: true
+      - name: Debug GitHub Context Values
+        run: |
+          echo "Event Name: ${{ github.event_name }}"
+          echo "PR Head Repo: ${{ github.event.pull_request.head.repo.full_name }}"
   external_job:
     needs: authorize  # Ensures it runs after authorize
     runs-on: ubuntu-latest
