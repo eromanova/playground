@@ -1,0 +1,26 @@
+kubeconfig
+# Binaries for programs and plugins
+bin
+dist
+
+# Test binary, build with `go test -c`
+*.test
+
+# Output of the go coverage tool
+*.out
+
+# Go workspace file
+go.work
+go.work.sum
+
+# ditors
+.idea
+*.swp
+*.swo
+*~
+
+# Vendoring directory
+vendor
+
+# mkdocs folder
+mkdocs
