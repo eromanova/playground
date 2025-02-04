@@ -17,28 +17,33 @@ jobs:
     runs-on: ubuntu-latest
     env:
       GH_TOKEN: ${{ github.token }}
-      repository: ${{ github.repository  }}
-      run_id: ${{ github.run_id }}
+    outputs:
+      config: ${{ steps.get_config.outputs.config }}
     steps:
       - name: Get Testing Configuration
+        id: get_config
         run: |
-          config_file=test
-          config=$(gh api "/repos/$repository/actions/runs/$run_id/approvals" --jq '.[0] | .comment')
-          if [[ -n "$config" ]]; then
-            echo "Testing configuration was overwritten"
-            echo "$config" > test_new_file
-            echo "Running cat"
-            cat test_new_file
-          else
-            echo "Default testing configuration"
+          config=$(gh api "/repos/${{ github.repository }}/actions/runs/${{ github.run_id }}/approvals" --jq '.[0] | .comment')
+          if [ -z "$config" ]; then
+            exit 0
           fi
+
+          echo "Provided testing configuration:"
+          echo "$config"
+          if ! echo "$config" | yq e > /dev/null; then
+            echo "Invalid testing configuration provided"
+            exit 1
+          fi
+          echo "config=$(echo -n "$config" | base64)" >> $GITHUB_OUTPUT
   external_job:
     needs: authorize
     runs-on: ubuntu-latest
     steps:
-      - name: Execute external job
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Load testing configuration
+        if: ${{ needs.authorize.outputs.config != '' }}
         run: |
-          echo "Running cat"
-          echo cat test_new_file
-          cat test_new_file
-          echo "Running external job environment is external"
+          echo -n "${{ needs.authorize.outputs.config }}" | base64 -d > config.yaml
+          echo "Testing configuration was overwritten:"
+          cat config.yaml
