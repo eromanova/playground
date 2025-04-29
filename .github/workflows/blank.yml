@@ -11,6 +11,7 @@ on:
 
 jobs:
   authorize:
+    if: ${{ contains( github.event.pull_request.labels.*.name, 'test e2e') }}
     environment:
       ${{ github.event_name == 'pull_request_target' &&
       'external' || 'internal' }}
@@ -35,7 +36,7 @@ jobs:
             echo "Invalid testing configuration provided"
             exit 1
           fi
-          echo "config=$(echo -n "$config" | base64)" >> $GITHUB_OUTPUT
+          echo "config=$(echo -n "$config" | base64 -w 0)" >> $GITHUB_OUTPUT
           if echo "$config" | yq e '... comments=""' | grep -q "hosted"; then
             echo "Hosted cluster deployment was triggered. Using public repository"
             echo "public_repo=true" >> $GITHUB_OUTPUT
@@ -45,8 +46,9 @@ jobs:
     runs-on: ubuntu-latest
     env:
       PUBLIC_REPO:
-        ${{ contains( github.event.pull_request.labels.*.name, 'test e2e') &&
-        contains(needs.authorize.result, 'success') && needs.authorize.outputs.public_repo == 'true' }}
+        ${{ contains( github.event.pull_request.labels.*.name, 'test e2e') }} &&
+        contains(needs.authorize.result, 'success') && 
+        needs.authorize.outputs.public_repo == 'true' }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -57,6 +59,5 @@ jobs:
           echo "Testing configuration was overwritten:"
           cat config.yaml
       - name: Test public env
-        if: ${{ env.PUBLIC_REPO == 'true' }}
         run: |
           echo PUBLIC_REPO ${PUBLIC_REPO}
